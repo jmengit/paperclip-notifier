@@ -8,5 +8,6 @@ secrets/
 /data/
 *.sqlite3
 *.sqlite3-*
+deploy-config.yaml
 .DS_Store
 src/*.egg-info/
