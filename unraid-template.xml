@@ -11,7 +11,7 @@
   <Project>https://github.com/jmengit/paperclip-notifier</Project>
   <Overview>Self-contained Paperclip Activity notifier. Native Unraid deployment uses IFTTT Webhooks as the initial notification path; IFTTT can then send Discord notifications. Direct Discord, Telegram, and generic GET/POST webhooks remain optional. Configure /config/config.yaml and secrets using environment variables or *_FILE paths. The container is read-only and persists SQLite state in /data.</Overview>
   <Category>Tools:Other</Category>
-  <WebUI>http://[IP]:[PORT:8080]/status</WebUI>
+  <WebUI>http://[IP]:[PORT:18080]/status</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/unraid-template.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/icon.svg</Icon>
   <ExtraParams>--read-only --tmpfs /tmp:size=16m,noexec,nosuid,nodev --cap-drop=ALL --security-opt=no-new-privileges:true --pids-limit=64 --memory=128m --cpus=0.25</ExtraParams>
