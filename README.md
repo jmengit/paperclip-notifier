@@ -14,7 +14,7 @@ The service polls Paperclip's company Activity API, normalizes selected activity
 - Internal API (optional shared user-defined Docker network): `http://paperclip:3100`
 - Public links: `https://paperclip.tcjacobyco.com/{companyPrefix}/...`
 - Persistence: `/data/state.sqlite3`
-- Health: `/healthz`, `/readyz`, `/status` on port 8080
+- Health: `/healthz`, `/readyz`, `/status` on container port 8080 (native template default host port 18080)
 - Destinations: IFTTT Webhooks (recommended initial route), Discord webhook, Telegram Bot API, generic GET or POST webhooks
 - No Paperclip database or Docker socket mount
 
@@ -23,7 +23,7 @@ The service polls Paperclip's company Activity API, normalizes selected activity
 1. Copy `config.example.yaml` to a protected config directory and set `paperclip.company_id`.
 2. Provide `PAPERCLIP_API_KEY` through an environment variable or protected file.
 3. Create an IFTTT Webhooks Applet: event `paperclip_activity` triggers a Discord action. Use `{{Value1}}`, `{{Value2}}`, and `{{Value3}}` in the Discord message.
-4. Store the IFTTT Webhooks key in a protected file and enable the `ifttt` destination. Keep keys, destination URLs, and tokens out of YAML and Git.
+4. Store the complete IFTTT Webhooks URL in a protected runtime file/environment variable and enable the `ifttt` destination. Keep the URL and all tokens out of YAML and Git.
 5. Run `paperclip-notifier --config /config/config.yaml check-config`.
 6. Run `paperclip-notifier --config /config/config.yaml check-paperclip`.
 7. Start with `bootstrap_mode: current`; the initial poll is baseline-only and does not replay history.
@@ -34,7 +34,7 @@ there before starting the container:
 
 ```text
 paperclip_api_key
-ifttt_webhooks_key
+ifttt_webhook_url
 ```
 
 Do not paste either secret into the XML template or `config.yaml`.
@@ -56,23 +56,44 @@ events. Paperclip is the event source; IFTTT is the initial outbound route.
 
 In IFTTT:
 
-1. Open **Webhooks → Documentation** and copy the private key into a protected
-   Unraid file mounted as `/run/secrets/ifttt_webhooks_key`.
-2. Create an Applet whose trigger is **Webhooks → Receive a web request**.
-3. Use the exact event name `paperclip_activity`.
-4. Choose **Discord → Send a message** as the action.
-5. Put these ingredients in the Discord message:
+1. Create an Applet whose trigger is **Webhooks → Receive a web request**.
+2. Use the exact event name `paperclip_activity`.
+3. Choose **Discord → Send a message** as the action.
+4. Put these ingredients in the Discord message:
    - `{{Value1}}`: Paperclip summary
    - `{{Value2}}`: normalized event type
    - `{{Value3}}`: clickable Paperclip URL
 
-The notifier sends IFTTT's documented JSON request to
-`https://maker.ifttt.com/trigger/paperclip_activity/with/key/<private-key>`.
-The key is loaded only at runtime and is never written to logs or the
-repository.
+5. In **Webhooks → Documentation**, copy the complete generated URL into the
+   protected file `/run/secrets/ifttt_webhook_url` (or provide
+   `IFTTT_WEBHOOK_URL` / `IFTTT_WEBHOOK_URL_FILE`). The notifier posts directly
+   to that URL unchanged; it does not construct the URL and does not need the
+   private key separately.
 
-> The example configuration intentionally has no real IFTTT key or Paperclip
-> API key. The values shown in the setup instructions are placeholders only.
+### Webhook JSON payload
+
+The notifier sends the standard IFTTT Webhooks JSON body. It contains exactly
+three fields:
+
+```json
+{
+  "value1": "Approve budget issue",
+  "value2": "approval_created",
+  "value3": "https://paperclip.example/PAP/approvals/approval-id"
+}
+```
+
+- `value1`: bounded human-readable summary (maximum 1,000 characters).
+- `value2`: normalized Paperclip event type (maximum 200 characters).
+- `value3`: clickable public Paperclip URL (maximum 2,000 characters).
+
+The request also includes `Content-Type: application/json`, `Accept:
+application/json`, and an `X-Paperclip-Notifier-Event-Id` header for tracing.
+The event ID is deliberately not duplicated into the IFTTT values; use the
+header only when the receiving service needs request correlation.
+
+> The example configuration intentionally has no real IFTTT webhook URL or
+> Paperclip API key. The values shown in the setup instructions are placeholders only.
 
 ### Unraid template
 

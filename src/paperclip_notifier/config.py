@@ -15,11 +15,6 @@ class ConfigError(ValueError):
     pass
 
 
-def _validate_ifttt_event_name(value: str) -> str:
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", value):
-        raise ConfigError("IFTTT event_name must contain only letters, numbers, underscore, or hyphen")
-    return value
-
 
 def _env(name: str, default: str | None = None) -> str | None:
     value = os.getenv(name, default)
@@ -33,8 +28,18 @@ def _secret(name: str, environ: dict[str, str] | None = None) -> str | None:
         return value
     path = source.get(f"{name}_FILE")
     if path:
-        return Path(path).read_text(encoding="utf-8").strip()
+        value = Path(path).read_text(encoding="utf-8").strip()
+        return value or None
     return None
+
+
+def _validate_ifttt_webhook_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.fragment:
+        raise ConfigError("IFTTT webhook URL must be an absolute HTTPS URL without credentials or fragment")
+    if len(value) > 4096:
+        raise ConfigError("IFTTT webhook URL exceeds 4096 characters")
+    return value
 
 
 def _public_url(value: str, allow_http: bool = False) -> str:
@@ -156,8 +161,7 @@ class Config:
     discord_webhook_url: str | None = None
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
-    ifttt_event_name: str | None = None
-    ifttt_webhooks_key: str | None = None
+    ifttt_webhook_url: str | None = None
     webhooks: tuple[WebhookConfig, ...] = ()
     health_host: str = "0.0.0.0"
     health_port: int = 8080
@@ -188,18 +192,19 @@ class Config:
         telegram_chat = str(telegram.get("chat_id", env.get("TELEGRAM_CHAT_ID", ""))) if telegram.get("enabled", False) else None
         ifttt = destinations.get("ifttt") or {}
         ifttt_enabled = bool(ifttt.get("enabled", False))
-        ifttt_event_name = _validate_ifttt_event_name(str(ifttt.get("event_name", env.get("IFTTT_EVENT_NAME", "paperclip_activity")))) if ifttt_enabled else None
-        ifttt_key_env = str(ifttt.get("key_env", "IFTTT_WEBHOOKS_KEY"))
-        ifttt_key = None
+        ifttt_url_env = str(ifttt.get("url_env", "IFTTT_WEBHOOK_URL"))
+        ifttt_url = None
         if ifttt_enabled:
-            ifttt_key = _secret(ifttt_key_env, env)
+            ifttt_url = _secret(ifttt_url_env, env)
+            if ifttt_url:
+                ifttt_url = _validate_ifttt_webhook_url(ifttt_url)
 
         if discord.get("enabled", False) and not discord_url:
             raise ConfigError("Discord is enabled but DISCORD_WEBHOOK_URL is missing")
         if telegram.get("enabled", False) and (not telegram_token or not telegram_chat):
             raise ConfigError("Telegram is enabled but token/chat_id is missing")
-        if ifttt_enabled and (not ifttt_event_name or not ifttt_key):
-            raise ConfigError(f"IFTTT is enabled but {ifttt_key_env} or event_name is missing")
+        if ifttt_enabled and not ifttt_url:
+            raise ConfigError(f"IFTTT is enabled but {ifttt_url_env} is missing")
         mode = str(paperclip.get("bootstrap_mode", "current"))
         if mode not in {"current", "lookback"}:
             raise ConfigError("bootstrap_mode must be current or lookback")
@@ -222,8 +227,7 @@ class Config:
             discord_webhook_url=discord_url,
             telegram_bot_token=telegram_token,
             telegram_chat_id=telegram_chat,
-            ifttt_event_name=ifttt_event_name,
-            ifttt_webhooks_key=ifttt_key,
+            ifttt_webhook_url=ifttt_url,
             webhooks=webhooks,
             health_host=str(raw.get("health", {}).get("host", "0.0.0.0")),
             health_port=int(raw.get("health", {}).get("port", 8080)),

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from .config import Config, ConfigError
-from .destinations import deliver_discord, deliver_telegram, deliver_webhook
+from .destinations import deliver_discord, deliver_ifttt, deliver_telegram, deliver_webhook
 from .main import run
 from .paperclip import PaperclipClient
 from .state import State
@@ -48,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
                 deliver_discord(config.discord_webhook_url or "", event)
             elif args.destination == "telegram":
                 deliver_telegram(config.telegram_bot_token or "", config.telegram_chat_id or "", event)
+            elif args.destination == "ifttt":
+                deliver_ifttt(config.ifttt_webhook_url or "", event)
             else:
                 webhook = next(w for w in config.webhooks if w.name == args.destination)
                 deliver_webhook(webhook, event)
