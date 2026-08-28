@@ -27,10 +27,10 @@ def test_public_url_cannot_be_http_by_default(tmp_path, monkeypatch):
         Config.from_file(config)
 
 
-def test_ifttt_key_can_be_loaded_from_file(tmp_path):
+def test_ifttt_webhook_url_can_be_loaded_from_file(tmp_path):
     config = tmp_path / "config.yaml"
-    key_file = tmp_path / "ifttt_key"
-    key_file.write_text("ifttt-secret\n")
+    url_file = tmp_path / "ifttt_url"
+    url_file.write_text("https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime\n")
     config.write_text(
         "paperclip:\n  public_url: https://paperclip.example\n  company_id: c\n"
         "destinations:\n  ifttt:\n    enabled: true\n"
@@ -38,13 +38,12 @@ def test_ifttt_key_can_be_loaded_from_file(tmp_path):
     from paperclip_notifier.config import Config
     cfg = Config.from_file(
         config,
-        {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOKS_KEY_FILE": str(key_file)},
+        {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOK_URL_FILE": str(url_file)},
     )
-    assert cfg.ifttt_event_name == "paperclip_activity"
-    assert cfg.ifttt_webhooks_key == "ifttt-secret"
+    assert cfg.ifttt_webhook_url == "https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime"
 
 
-def test_ifttt_must_have_a_key_when_enabled(tmp_path):
+def test_ifttt_must_have_a_url_when_enabled(tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text(
         "paperclip:\n  public_url: https://paperclip.example\n  company_id: c\n"
@@ -55,12 +54,20 @@ def test_ifttt_must_have_a_key_when_enabled(tmp_path):
         Config.from_file(config, {"PAPERCLIP_API_KEY": "paperclip-key"})
 
 
-def test_ifttt_event_name_is_validated(tmp_path):
+def test_ifttt_url_is_required_when_enabled(tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text(
         "paperclip:\n  public_url: https://paperclip.example\n  company_id: c\n"
-        "destinations:\n  ifttt:\n    enabled: true\n    event_name: 'bad/name'\n"
+        "destinations:\n  ifttt:\n    enabled: true\n"
     )
     from paperclip_notifier.config import Config
-    with pytest.raises(ConfigError, match="event_name"):
-        Config.from_file(config, {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOKS_KEY": "key"})
+    with pytest.raises(ConfigError, match="IFTTT_WEBHOOK_URL"):
+        Config.from_file(config, {"PAPERCLIP_API_KEY": "paperclip-key"})
+
+
+def test_ifttt_webhook_url_must_be_https(tmp_path):
+    config = tmp_path / "config.yaml"
+    config.write_text("paperclip:\n  public_url: https://paperclip.example\n  company_id: c\ndestinations:\n  ifttt:\n    enabled: true\n")
+    from paperclip_notifier.config import Config
+    with pytest.raises(ConfigError, match="HTTPS"):
+        Config.from_file(config, {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOK_URL": "http://example.invalid/hook"})

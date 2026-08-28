@@ -3,7 +3,7 @@ import json
 from paperclip_notifier.destinations import deliver_ifttt
 
 
-def test_ifttt_uses_three_values_and_never_exposes_key(monkeypatch):
+def test_ifttt_posts_three_values_to_supplied_url(monkeypatch):
     seen = {}
 
     def fake_request(method, url, **kwargs):
@@ -12,8 +12,7 @@ def test_ifttt_uses_three_values_and_never_exposes_key(monkeypatch):
 
     monkeypatch.setattr("paperclip_notifier.destinations.request", fake_request)
     deliver_ifttt(
-        "secret-key",
-        "paperclip_activity",
+        "https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime-key",
         {
             "event_id": "evt-1",
             "event_type": "approval_created",
@@ -23,7 +22,7 @@ def test_ifttt_uses_three_values_and_never_exposes_key(monkeypatch):
     )
 
     assert seen["method"] == "POST"
-    assert "secret-key" in seen["url"]
+    assert seen["url"] == "https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime-key"
     payload = json.loads(seen["body"])
     assert payload == {
         "value1": "Approve this",
@@ -33,7 +32,7 @@ def test_ifttt_uses_three_values_and_never_exposes_key(monkeypatch):
     assert seen["headers"]["X-Paperclip-Notifier-Event-Id"] == "evt-1"
 
 
-def test_ifttt_event_name_is_path_encoded(monkeypatch):
+def test_ifttt_url_is_not_rewritten(monkeypatch):
     seen = {}
 
     def fake_request(method, url, **kwargs):
@@ -41,6 +40,6 @@ def test_ifttt_event_name_is_path_encoded(monkeypatch):
         return type("Response", (), {"status": 200})()
 
     monkeypatch.setattr("paperclip_notifier.destinations.request", fake_request)
-    deliver_ifttt("key", "paperclip activity", {"event_id": "e", "summary": "s", "event_type": "t", "paperclip_url": "u"})
-    assert "paperclip%20activity" in seen["url"]
-    assert "key" in seen["url"]
+    url = "https://example.invalid/custom/path?token=runtime-key"
+    deliver_ifttt(url, {"event_id": "e", "summary": "s", "event_type": "t", "paperclip_url": "u"})
+    assert seen["url"] == url

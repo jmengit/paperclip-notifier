@@ -15,12 +15,13 @@ services:
     cpus: 0.25
     environment:
       PAPERCLIP_API_KEY_FILE: /run/secrets/paperclip_api_key
+      IFTTT_WEBHOOK_URL_FILE: /run/secrets/ifttt_webhook_url
       DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook_url
       TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
       WEBHOOK_EXAMPLE_POST_URL_FILE: /run/secrets/webhook_example_post_url
     volumes:
-      - /mnt/appcache/appdata/paperclip-notifier/data:/data
-      - /mnt/appcache/appdata/paperclip-notifier/config:/config:ro
+      - /mnt/user/appdata/paperclip-notifier/data:/data
+      - /mnt/user/appdata/paperclip-notifier/config:/config:ro
     secrets:
       - paperclip_api_key
       - discord_webhook_url
@@ -46,6 +47,8 @@ secrets:
     file: ./secrets/telegram_bot_token
   webhook_example_post_url:
     file: ./secrets/webhook_example_post_url
+  ifttt_webhook_url:
+    file: ./secrets/ifttt_webhook_url
 
 networks:
   paperclip:

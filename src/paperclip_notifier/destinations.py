@@ -99,11 +99,27 @@ def deliver_webhook(config: WebhookConfig, event: dict) -> None:
     _request_result(resp.status, config.expected_statuses)
 
 
-def deliver_ifttt(key: str, event_name: str, event: dict, timeout: float = 10) -> None:
-    """Send the minimal IFTTT Webhooks Maker payload; never log the key or URL."""
-    from urllib.parse import quote
+def deliver_ifttt(webhook_url: str, event: dict, timeout: float = 10) -> None:
+    """POST a Paperclip event to a user-supplied IFTTT Webhooks URL.
 
-    url = f"https://maker.ifttt.com/trigger/{quote(event_name, safe='')}/with/key/{quote(key, safe='')}"
-    payload = {"value1": str(event.get("summary", ""))[:1000], "value2": str(event.get("event_type", ""))[:200], "value3": str(event.get("paperclip_url", ""))[:2000]}
-    resp = request("POST", url, headers={"Content-Type": "application/json", "Accept": "application/json", "X-Paperclip-Notifier-Event-Id": event["event_id"]}, body=json.dumps(payload, separators=(",", ":")).encode(), timeout=timeout)
+    The complete IFTTT URL, including its private key when applicable, is
+    loaded only at runtime. It is never constructed, logged, or persisted by
+    this function.
+    """
+    payload = {
+        "value1": str(event.get("summary", ""))[:1000],
+        "value2": str(event.get("event_type", ""))[:200],
+        "value3": str(event.get("paperclip_url", ""))[:2000],
+    }
+    resp = request(
+        "POST",
+        webhook_url,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-Paperclip-Notifier-Event-Id": event["event_id"],
+        },
+        body=json.dumps(payload, separators=(",", ":")).encode(),
+        timeout=timeout,
+    )
     _request_result(resp.status, ())
