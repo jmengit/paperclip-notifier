@@ -53,27 +53,11 @@ destinations:
       query:
         integration: paperclip
         event: "{{ event_type }}"
-        link: "{{ paperclip_url }}"
+        event_id: "{{ event_id }}"
       timeout_seconds: 10
-health:
-  host: 0.0.0.0
-  port: 8080
+      allow_private_network: false
+      # hmac_secret_env: WEBHOOK_EXAMPLE_GET_HMAC_SECRET
 
-# IFTTT setup:
-# 1. In IFTTT Webhooks, open Documentation and copy the private key into
-#    /run/secrets/ifttt_webhooks_key (or set IFTTT_WEBHOOKS_KEY).
-# 2. Create an Applet: If Webhooks receives paperclip_activity, Then Discord
-#    creates a message. Use {{Value1}}, {{Value2}}, and {{Value3}}.
-# 3. Keep the IFTTT key out of this file, GitHub, screenshots, and logs.
-# 4. The notifier sends Value1=summary, Value2=event type, Value3=Paperclip URL.
-# 5. IFTTT event names are case-sensitive and must match exactly.
-#
-# For IFTTT's documented request endpoint, the notifier uses:
-# https://maker.ifttt.com/trigger/<event_name>/with/key/<private-key>
-# The private key is inserted only at request time and is never logged.
-
-# To enable IFTTT without editing this file, set:
-#   PAPERCLIP_IFTTT_ENABLED=1
-#   IFTTT_EVENT_NAME=paperclip_activity
-#   IFTTT_WEBHOOKS_KEY_FILE=/run/secrets/ifttt_webhooks_key
-# (The YAML destination above is still the authoritative enable switch.)
+# Destination/test secrets are runtime-only. For native Unraid, use:
+# /run/secrets/paperclip_api_key and /run/secrets/ifttt_webhooks_key
+# via the read-only secrets bind mount. Never commit real values.
