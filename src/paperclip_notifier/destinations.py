@@ -97,3 +97,13 @@ def deliver_webhook(config: WebhookConfig, event: dict) -> None:
     url, body, headers = webhook_request(config, event)
     resp = request(config.method, url, headers=headers, body=body or None, timeout=config.timeout_seconds, verify_tls=config.verify_tls, allow_private=config.allow_private_network)
     _request_result(resp.status, config.expected_statuses)
+
+
+def deliver_ifttt(key: str, event_name: str, event: dict, timeout: float = 10) -> None:
+    """Send the minimal IFTTT Webhooks Maker payload; never log the key or URL."""
+    from urllib.parse import quote
+
+    url = f"https://maker.ifttt.com/trigger/{quote(event_name, safe='')}/with/key/{quote(key, safe='')}"
+    payload = {"value1": str(event.get("summary", ""))[:1000], "value2": str(event.get("event_type", ""))[:200], "value3": str(event.get("paperclip_url", ""))[:2000]}
+    resp = request("POST", url, headers={"Content-Type": "application/json", "Accept": "application/json", "X-Paperclip-Notifier-Event-Id": event["event_id"]}, body=json.dumps(payload, separators=(",", ":")).encode(), timeout=timeout)
+    _request_result(resp.status, ())

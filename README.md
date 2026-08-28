@@ -1,6 +1,8 @@
 # Paperclip Notifier
 
-A small, durable, read-only Paperclip activity notifier for Discord, Telegram, and generic HTTP GET/POST webhooks.
+A small, durable, read-only Paperclip activity notifier for IFTTT Webhooks,
+Discord, Telegram, and generic HTTP GET/POST webhooks. The recommended initial
+route is Paperclip → this container → IFTTT Webhooks → Discord.
 
 > **Status:** initial implementation. Review action mappings and API payload fixtures against your Paperclip version before production deployment.
 
@@ -8,21 +10,23 @@ A small, durable, read-only Paperclip activity notifier for Discord, Telegram, a
 
 The service polls Paperclip's company Activity API, normalizes selected activity into a versioned event, builds a canonical link to the exact Paperclip object, and writes one outbox row per destination to persistent SQLite before delivery.
 
-- Internal API: `http://paperclip:3100` in a shared Docker network
+- Internal API (native Unraid template default): `http://192.168.86.201:3200`
+- Internal API (optional shared user-defined Docker network): `http://paperclip:3100`
 - Public links: `https://paperclip.tcjacobyco.com/{companyPrefix}/...`
 - Persistence: `/data/state.sqlite3`
 - Health: `/healthz`, `/readyz`, `/status` on port 8080
-- Destinations: Discord webhook, Telegram Bot API, generic GET or POST webhooks
+- Destinations: IFTTT Webhooks (recommended initial route), Discord webhook, Telegram Bot API, generic GET or POST webhooks
 - No Paperclip database or Docker socket mount
 
 ## Quick start
 
 1. Copy `config.example.yaml` to a protected config directory and set `paperclip.company_id`.
-2. Provide `PAPERCLIP_API_KEY` through an environment variable or Docker secret.
-3. Enable and configure one or more destinations. Keep destination URLs/tokens in secrets, not YAML.
-4. Run `paperclip-notifier --config /config/config.yaml check-config`.
-5. Run `paperclip-notifier --config /config/config.yaml check-paperclip`.
-6. Start with `bootstrap_mode: current`; the initial poll is baseline-only and does not replay history.
+2. Provide `PAPERCLIP_API_KEY` through an environment variable or protected file.
+3. Create an IFTTT Webhooks Applet: event `paperclip_activity` triggers a Discord action. Use `{{Value1}}`, `{{Value2}}`, and `{{Value3}}` in the Discord message.
+4. Store the IFTTT Webhooks key in a protected file and enable the `ifttt` destination. Keep keys, destination URLs, and tokens out of YAML and Git.
+5. Run `paperclip-notifier --config /config/config.yaml check-config`.
+6. Run `paperclip-notifier --config /config/config.yaml check-paperclip`.
+7. Start with `bootstrap_mode: current`; the initial poll is baseline-only and does not replay history.
 
 ## Unraid deployment
 
@@ -32,6 +36,32 @@ version tag and `latest`; it does not require a second sidecar,
 Paperclip source changes, the Paperclip database, or the Docker socket. The
 published image bundles Python and all runtime dependencies; only `/config` and
 `/data` are external mounts.
+
+The template is only a native Unraid installation mechanism. It does not
+provide “Unraid notifications” and does not depend on Unraid notification
+events. Paperclip is the event source; IFTTT is the initial outbound route.
+
+### IFTTT Webhooks setup
+
+In IFTTT:
+
+1. Open **Webhooks → Documentation** and copy the private key into a protected
+   Unraid file mounted as `/run/secrets/ifttt_webhooks_key`.
+2. Create an Applet whose trigger is **Webhooks → Receive a web request**.
+3. Use the exact event name `paperclip_activity`.
+4. Choose **Discord → Send a message** as the action.
+5. Put these ingredients in the Discord message:
+   - `{{Value1}}`: Paperclip summary
+   - `{{Value2}}`: normalized event type
+   - `{{Value3}}`: clickable Paperclip URL
+
+The notifier sends IFTTT's documented JSON request to
+`https://maker.ifttt.com/trigger/paperclip_activity/with/key/<private-key>`.
+The key is loaded only at runtime and is never written to logs or the
+repository.
+
+> The example configuration intentionally has no real IFTTT key or Paperclip
+> API key. The values shown in the setup instructions are placeholders only.
 
 ### Unraid template
 

@@ -1,7 +1,9 @@
 version: 1
 paperclip:
-  # Internal API address. In a Portainer stack use the Paperclip service name.
-  base_url: http://paperclip:3100
+  # Native Unraid bridge deployment: Paperclip's published LAN address.
+  # If both containers share a user-defined Docker network, use the Paperclip
+  # container DNS name and its internal port (usually 3100) instead.
+  base_url: http://192.168.86.201:3200
   # Browser-facing origin included in notifications.
   public_url: https://paperclip.tcjacobyco.com
   company_id: replace-with-company-id
@@ -10,7 +12,7 @@ paperclip:
   bootstrap_mode: current
   data_dir: /data
 rules:
-  # Match normalized action names. Start narrowly and expand after observing fixtures.
+  # Start narrowly. These are normalized Paperclip activity action names.
   immediate:
     - approval_created
     - agent_run_failed
@@ -21,12 +23,20 @@ rules:
     - issue_done
   digest_window_seconds: 60
 destinations:
+  # Initial recommended path: Paperclip Notifier -> IFTTT Webhooks -> Discord.
+  # Create an IFTTT Applet with Webhooks "If This" and Discord "Then That".
+  ifttt:
+    enabled: true
+    event_name: paperclip_activity
+    key_env: IFTTT_WEBHOOKS_KEY
+  # Direct Discord/Telegram are retained as optional alternatives.
   discord:
     enabled: false
   telegram:
     enabled: false
     chat_id: replace-with-chat-id
   webhooks:
+    # Generic webhook destination, independent of IFTTT.
     - name: example_post
       enabled: false
       method: POST
@@ -48,3 +58,22 @@ destinations:
 health:
   host: 0.0.0.0
   port: 8080
+
+# IFTTT setup:
+# 1. In IFTTT Webhooks, open Documentation and copy the private key into
+#    /run/secrets/ifttt_webhooks_key (or set IFTTT_WEBHOOKS_KEY).
+# 2. Create an Applet: If Webhooks receives paperclip_activity, Then Discord
+#    creates a message. Use {{Value1}}, {{Value2}}, and {{Value3}}.
+# 3. Keep the IFTTT key out of this file, GitHub, screenshots, and logs.
+# 4. The notifier sends Value1=summary, Value2=event type, Value3=Paperclip URL.
+# 5. IFTTT event names are case-sensitive and must match exactly.
+#
+# For IFTTT's documented request endpoint, the notifier uses:
+# https://maker.ifttt.com/trigger/<event_name>/with/key/<private-key>
+# The private key is inserted only at request time and is never logged.
+
+# To enable IFTTT without editing this file, set:
+#   PAPERCLIP_IFTTT_ENABLED=1
+#   IFTTT_EVENT_NAME=paperclip_activity
+#   IFTTT_WEBHOOKS_KEY_FILE=/run/secrets/ifttt_webhooks_key
+# (The YAML destination above is still the authoritative enable switch.)
