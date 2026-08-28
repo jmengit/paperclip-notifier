@@ -167,9 +167,9 @@ class Config:
         env = environ or os.environ
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         paperclip = raw.get("paperclip") or {}
-        base = str(paperclip.get("base_url", _env("PAPERCLIP_BASE_URL", "http://192.168.86.201:3200"))).rstrip("/")
-        public = str(paperclip.get("public_url", _env("PAPERCLIP_PUBLIC_URL", "https://paperclip.tcjacobyco.com")))
-        company = str(paperclip.get("company_id", _env("PAPERCLIP_COMPANY_ID", "")))
+        base = str(paperclip.get("base_url") or env.get("PAPERCLIP_BASE_URL") or "http://192.168.86.201:3200").rstrip("/")
+        public = str(paperclip.get("public_url") or env.get("PAPERCLIP_PUBLIC_URL") or "https://paperclip.tcjacobyco.com")
+        company = str(paperclip.get("company_id") or env.get("PAPERCLIP_COMPANY_ID") or "")
         key = _secret("PAPERCLIP_API_KEY", env) or ""
         if not company or company.startswith("replace-with-"):
             raise ConfigError("paperclip.company_id or PAPERCLIP_COMPANY_ID is required")
