@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 from .config import Config
-from .destinations import deliver_discord, deliver_telegram, deliver_webhook
+from .destinations import deliver_discord, deliver_ifttt, deliver_telegram, deliver_webhook
 from .links import LinkContext
 from .normalize import normalize
 from .paperclip import PaperclipClient
@@ -79,6 +79,8 @@ def destinations(config: Config) -> list[str]:
         result.append("discord")
     if config.telegram_bot_token:
         result.append("telegram")
+    if config.ifttt_webhooks_key and config.ifttt_event_name:
+        result.append("ifttt")
     result.extend(w.name for w in config.webhooks)
     return result
 
@@ -88,6 +90,8 @@ def _send(destination: str, event: dict, config: Config) -> None:
         deliver_discord(config.discord_webhook_url or "", event, config.request_timeout_seconds)
     elif destination == "telegram":
         deliver_telegram(config.telegram_bot_token or "", config.telegram_chat_id or "", event, config.request_timeout_seconds)
+    elif destination == "ifttt":
+        deliver_ifttt(config.ifttt_webhooks_key or "", config.ifttt_event_name or "paperclip_activity", event, config.request_timeout_seconds)
     else:
         webhook = next(w for w in config.webhooks if w.name == destination)
         deliver_webhook(webhook, event)
