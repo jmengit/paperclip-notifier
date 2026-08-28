@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+            type=sha
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
+  dependency-review:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        continue-on-error: true
+        with:
+          fail-on-severity: high
+
+  image-smoke:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and inspect published image
+        run: |
+          docker pull "${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME}"
+          test "$(docker inspect -f '{{.Config.User}}' "${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME}")" = "10001:10001"
+          test "$(docker inspect -f '{{json .Config.Healthcheck}}' "${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME}")" != "null"
+          docker run --rm --entrypoint python "${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME}" -m paperclip_notifier.cli --help
+          echo "published container image smoke checks passed"
+
+  security:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - uses: docker/scout-action@v1
+        continue-on-error: true
+        with:
+          command: cves
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          only-severities: critical,high
+          exit-code: true
+          ignore-unchanged: true
+          summary: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}

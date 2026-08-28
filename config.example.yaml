@@ -1,0 +1,50 @@
+version: 1
+paperclip:
+  # Internal API address. In a Portainer stack use the Paperclip service name.
+  base_url: http://paperclip:3100
+  # Browser-facing origin included in notifications.
+  public_url: https://paperclip.tcjacobyco.com
+  company_id: replace-with-company-id
+  poll_seconds: 15
+  request_timeout_seconds: 10
+  bootstrap_mode: current
+  data_dir: /data
+rules:
+  # Match normalized action names. Start narrowly and expand after observing fixtures.
+  immediate:
+    - approval_created
+    - agent_run_failed
+    - issue_blocked
+    - budget_incident_opened
+  digest:
+    - issue_created
+    - issue_done
+  digest_window_seconds: 60
+destinations:
+  discord:
+    enabled: false
+  telegram:
+    enabled: false
+    chat_id: replace-with-chat-id
+  webhooks:
+    - name: example_post
+      enabled: false
+      method: POST
+      url_env: WEBHOOK_EXAMPLE_POST_URL
+      body: canonical
+      headers_env: WEBHOOK_EXAMPLE_POST_HEADERS_JSON
+      timeout_seconds: 10
+      # hmac_secret_env: WEBHOOK_EXAMPLE_POST_HMAC_SECRET
+    - name: example_get
+      enabled: false
+      method: GET
+      url_env: WEBHOOK_EXAMPLE_GET_URL
+      headers_env: WEBHOOK_EXAMPLE_GET_HEADERS_JSON
+      query:
+        integration: paperclip
+        event: "{{ event_type }}"
+        link: "{{ paperclip_url }}"
+      timeout_seconds: 10
+health:
+  host: 0.0.0.0
+  port: 8080

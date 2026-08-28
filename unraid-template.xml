@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Container version="2">
+  <Name>paperclip-notifier</Name>
+  <Repository>ghcr.io/jmengit/paperclip-notifier:0.1.0</Repository>
+  <Registry>https://ghcr.io/</Registry>
+  <Network>bridge</Network>
+  <MyIP></MyIP>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/jmengit/paperclip-notifier/issues</Support>
+  <Project>https://github.com/jmengit/paperclip-notifier</Project>
+  <Overview>Durable Paperclip Activity notifier for Discord, Telegram, and generic GET/POST webhooks. Configure /config/config.yaml and secrets using environment variables or *_FILE paths. The container is read-only and persists SQLite state in /data.</Overview>
+  <Category>Tools:Other</Category>
+  <WebUI>http://[IP]:[PORT:8080]/status</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/unraid-template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/assets/icon.png</Icon>
+  <ExtraParams>--read-only --tmpfs /tmp:size=16m,noexec,nosuid,nodev --cap-drop=ALL --security-opt=no-new-privileges:true --pids-limit=64 --memory=128m --cpus=0.25</ExtraParams>
+  <PostArgs> </PostArgs>
+  <CPUset></CPUset>
+  <DateInstalled></DateInstalled>
+  <DonateText></DonateText>
+  <DonateLink></DonateLink>
+  <Requires></Requires>
+  <Config Name="Config directory" Target="/config" Default="/mnt/user/appdata/paperclip-notifier/config" Mode="ro" Description="Directory containing config.yaml. Store this outside the image and restrict permissions." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/paperclip-notifier/config</Config>
+  <Config Name="Persistent data" Target="/data" Default="/mnt/user/appdata/paperclip-notifier/data" Mode="rw" Description="SQLite state, outbox, checkpoints, and dead-letter records." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/paperclip-notifier/data</Config>
+  <Config Name="Health/API port" Target="8080" Default="8080" Mode="tcp" Description="Optional local health/status endpoint. Do not expose publicly." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+  <Environment Name="PAPERCLIP_BASE_URL" Default="http://192.168.86.201:3200" Description="Paperclip API base URL. Prefer the Paperclip container name on a shared custom network." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_PUBLIC_URL" Default="https://paperclip.tcjacobyco.com" Description="Public browser origin used to build clickable links." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_COMPANY_ID" Default="" Description="Paperclip company ID." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_API_KEY_FILE" Default="/run/secrets/paperclip_api_key" Description="Path to a mounted Paperclip API-key file. Do not put secrets in this XML or config YAML." Type="Variable" Display="advanced" Required="false" Mask="true"></Environment>
+  <Environment Name="DISCORD_WEBHOOK_URL_FILE" Default="/run/secrets/discord_webhook_url" Description="Optional path to Discord webhook URL file." Type="Variable" Display="advanced" Required="false" Mask="true"></Environment>
+  <Environment Name="TELEGRAM_BOT_TOKEN_FILE" Default="/run/secrets/telegram_bot_token" Description="Optional path to Telegram bot token file." Type="Variable" Display="advanced" Required="false" Mask="true"></Environment>
+  <Environment Name="TELEGRAM_CHAT_ID" Default="" Description="Optional Telegram destination chat ID." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="LOG_LEVEL" Default="INFO" Description="Python logging level." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="TZ" Default="UTC" Description="Container timezone; event timestamps remain UTC." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+</Container>
+
+<!--
+Unraid template limitation: Docker secrets are not created by this template.
+Mount secret files read-only at the paths above, or use *_FILE paths pointing to
+protected files. Never expose the Paperclip API key, bot token, webhook URL, or
+authorization headers as public template defaults.
+-->
