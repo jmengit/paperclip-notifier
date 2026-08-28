@@ -22,15 +22,10 @@ def _env(name: str, default: str | None = None) -> str | None:
 
 
 def _secret(name: str, environ: dict[str, str] | None = None) -> str | None:
+    """Read a secret only from the supplied/runtime environment."""
     source = environ if environ is not None else os.environ
     value = source.get(name)
-    if value:
-        return value
-    path = source.get(f"{name}_FILE")
-    if path:
-        value = Path(path).read_text(encoding="utf-8").strip()
-        return value or None
-    return None
+    return value.strip() if value and value.strip() else None
 
 
 def _validate_ifttt_webhook_url(value: str) -> str:
@@ -178,7 +173,7 @@ class Config:
         if not company or company.startswith("replace-with-"):
             raise ConfigError("paperclip.company_id or PAPERCLIP_COMPANY_ID is required")
         if not key:
-            raise ConfigError("PAPERCLIP_API_KEY or PAPERCLIP_API_KEY_FILE is required")
+            raise ConfigError("PAPERCLIP_API_KEY is required")
         poll = float(paperclip.get("poll_seconds", 15))
         if not 5 <= poll <= 300:
             raise ConfigError("poll_seconds must be 5..300")

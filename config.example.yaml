@@ -59,6 +59,6 @@ destinations:
       allow_private_network: false
       # hmac_secret_env: WEBHOOK_EXAMPLE_GET_HMAC_SECRET
 
-# Destination/test secrets are runtime-only. For native Unraid, use:
-# /run/secrets/paperclip_api_key and /run/secrets/ifttt_webhook_url
-# via the read-only secrets bind mount. Never commit real values.
+# Destination/test secrets are runtime-only. For native Unraid, supply
+# PAPERCLIP_API_KEY and IFTTT_WEBHOOK_URL as masked environment variables.
+# Never commit real values.
