@@ -1,6 +1,6 @@
 services:
   paperclip-notifier:
-    image: ghcr.io/jmengit/paperclip-notifier:0.1.0
+    image: ghcr.io/jmengit/paperclip-notifier:v0.2.1
     container_name: paperclip-notifier
     restart: unless-stopped
     read_only: true
@@ -14,19 +14,15 @@ services:
     mem_limit: 128m
     cpus: 0.25
     environment:
-      PAPERCLIP_API_KEY_FILE: /run/secrets/paperclip_api_key
-      IFTTT_WEBHOOK_URL_FILE: /run/secrets/ifttt_webhook_url
-      DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook_url
-      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
-      WEBHOOK_EXAMPLE_POST_URL_FILE: /run/secrets/webhook_example_post_url
+      PAPERCLIP_API_KEY: ${PAPERCLIP_API_KEY:?set in protected runtime environment}
+      IFTTT_WEBHOOK_URL: ${IFTTT_WEBHOOK_URL:?set in protected runtime environment}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      WEBHOOK_EXAMPLE_POST_URL: ${WEBHOOK_EXAMPLE_POST_URL:-}
     volumes:
       - /mnt/user/appdata/paperclip-notifier/data:/data
       - /mnt/user/appdata/paperclip-notifier/config:/config:ro
-    secrets:
-      - paperclip_api_key
-      - discord_webhook_url
-      - telegram_bot_token
-      - webhook_example_post_url
+
     ports:
       - "8080:8080"
     networks:
@@ -37,18 +33,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-
-secrets:
-  paperclip_api_key:
-    file: ./secrets/paperclip_api_key
-  discord_webhook_url:
-    file: ./secrets/discord_webhook_url
-  telegram_bot_token:
-    file: ./secrets/telegram_bot_token
-  webhook_example_post_url:
-    file: ./secrets/webhook_example_post_url
-  ifttt_webhook_url:
-    file: ./secrets/ifttt_webhook_url
 
 networks:
   paperclip:

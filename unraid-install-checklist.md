@@ -2,11 +2,11 @@
 
 1. Install the published `paperclip-notifier` template from **Docker → Add Container → Template repositories** using:
    `https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/unraid-template.xml`
-2. Create `/mnt/user/appdata/paperclip-notifier/config`, `/mnt/user/appdata/paperclip-notifier/data`, and `/mnt/user/appdata/paperclip-notifier/secrets`.
+2. Create `/mnt/user/appdata/paperclip-notifier/config` and `/mnt/user/appdata/paperclip-notifier/data`.
 3. Copy `config.example.yaml` to `/mnt/user/appdata/paperclip-notifier/config/config.yaml`.
 4. Set `paperclip.company_id`, enable `destinations.ifttt`, and leave direct Discord/Telegram disabled for the initial deployment.
 5. In IFTTT, create a Webhooks → Discord Applet using the exact event name `paperclip_activity`. Map `Value1` to the message summary, `Value2` to event type, and `Value3` to the Paperclip link.
-6. Create protected files for the Paperclip API key and complete IFTTT Webhooks URL. Mount them read-only at `/run/secrets/` and keep them out of GitHub and screenshots. The URL file must be `/run/secrets/ifttt_webhook_url` unless you change `IFTTT_WEBHOOK_URL_FILE`. The application never needs the IFTTT private key separately.
+6. In the template's masked environment-variable fields, supply `PAPERCLIP_API_KEY` and the complete IFTTT URL as `IFTTT_WEBHOOK_URL`. Keep both values out of GitHub, screenshots, shell history, and command output. The application never needs the IFTTT private key separately.
 7. Confirm the Paperclip API address. The template default is `http://192.168.86.201:3200`; use `http://<paperclip-container>:3100` only when both containers share a user-defined Docker network.
 8. Set the host health port to an unused LAN-only port, default `18080` because Unraid already uses `8080`. Do not publish it through Cloudflare or a reverse proxy.
 9. Pin the image tag or digest. Start the container.
@@ -15,23 +15,22 @@
 12. Create one controlled Paperclip test activity and confirm IFTTT forwards it to Discord with a link beginning `https://paperclip.tcjacobyco.com/`.
 13. Keep `/mnt/user/appdata/paperclip-notifier/data` when upgrading. Do not delete `state.sqlite3` unless you intentionally want to reset the notifier checkpoint and deduplication state.
 
-### Protected secret files
+### Runtime secrets
 
-The files below contain credentials and must never be committed or pasted into
-the public repository:
-
-```text
-/mnt/user/appdata/paperclip-notifier/secrets/paperclip_api_key
-/mnt/user/appdata/paperclip-notifier/secrets/ifttt_webhook_url
-```
-
-The second file contains the complete IFTTT URL, including its private key.
-The notifier posts directly to that URL and does not require a separate IFTTT
-key or event-name variable.
+Enter `PAPERCLIP_API_KEY` and the complete IFTTT URL as `IFTTT_WEBHOOK_URL` in
+the template's masked runtime environment fields. Do not store them in the
+public template, config file, GitHub, shell history, or command output. The
+notifier posts directly to the complete URL and does not require a separate
+IFTTT key or event-name variable.
 
 ## Important limitation
 
-The Unraid template can describe secret-file paths but cannot safely create Docker secrets or inject real credentials. Secret files must be provisioned by the operator or by an existing secret-management workflow. Never put API keys, IFTTT keys, bot tokens, webhook URLs, or authorization headers in the public repository, template defaults, or image. This template is only native Unraid container handling; it does not send Unraid notifications.
+The Unraid template exposes masked runtime variables but cannot safely create
+or persist real credentials in the public template. Enter the values directly
+in Unraid's environment fields. Never put API keys, IFTTT keys, bot tokens,
+webhook URLs, or authorization headers in the public repository, template
+defaults, or image. This template is only native Unraid container handling; it
+does not send Unraid notifications.
 
 ## Rollback
 

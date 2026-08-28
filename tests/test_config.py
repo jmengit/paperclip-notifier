@@ -27,10 +27,9 @@ def test_public_url_cannot_be_http_by_default(tmp_path, monkeypatch):
         Config.from_file(config)
 
 
-def test_ifttt_webhook_url_can_be_loaded_from_file(tmp_path):
+def test_ifttt_webhook_url_is_loaded_from_runtime_environment(tmp_path):
     config = tmp_path / "config.yaml"
-    url_file = tmp_path / "ifttt_url"
-    url_file.write_text("https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime\n")
+
     config.write_text(
         "paperclip:\n  public_url: https://paperclip.example\n  company_id: c\n"
         "destinations:\n  ifttt:\n    enabled: true\n"
@@ -38,7 +37,7 @@ def test_ifttt_webhook_url_can_be_loaded_from_file(tmp_path):
     from paperclip_notifier.config import Config
     cfg = Config.from_file(
         config,
-        {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOK_URL_FILE": str(url_file)},
+        {"PAPERCLIP_API_KEY": "paperclip-key", "IFTTT_WEBHOOK_URL": "https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime"},
     )
     assert cfg.ifttt_webhook_url == "https://maker.ifttt.com/trigger/paperclip_activity/with/key/runtime"
 

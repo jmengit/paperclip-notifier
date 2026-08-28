@@ -21,23 +21,16 @@ The service polls Paperclip's company Activity API, normalizes selected activity
 ## Quick start
 
 1. Copy `config.example.yaml` to a protected config directory and set `paperclip.company_id`.
-2. Provide `PAPERCLIP_API_KEY` through an environment variable or protected file.
+2. Provide `PAPERCLIP_API_KEY` through a protected runtime environment variable.
 3. Create an IFTTT Webhooks Applet: event `paperclip_activity` triggers a Discord action. Use `{{Value1}}`, `{{Value2}}`, and `{{Value3}}` in the Discord message.
-4. Store the complete IFTTT Webhooks URL in a protected runtime file/environment variable and enable the `ifttt` destination. Keep the URL and all tokens out of YAML and Git.
+4. Provide the complete IFTTT Webhooks URL as the protected runtime environment variable `IFTTT_WEBHOOK_URL` and enable the `ifttt` destination. Keep the URL and all tokens out of YAML and Git.
 5. Run `paperclip-notifier --config /config/config.yaml check-config`.
 6. Run `paperclip-notifier --config /config/config.yaml check-paperclip`.
 7. Start with `bootstrap_mode: current`; the initial poll is baseline-only and does not replay history.
 
-The native Unraid template also mounts `/run/secrets` from
-`/mnt/user/appdata/paperclip-notifier/secrets` read-only. Create the two files
-there before starting the container:
-
-```text
-paperclip_api_key
-ifttt_webhook_url
-```
-
-Do not paste either secret into the XML template or `config.yaml`.
+The native Unraid template supplies both application secrets as masked runtime
+environment variables. Do not paste either secret into the XML template,
+`config.yaml`, Git, or a command line.
 
 ## Unraid deployment
 
@@ -48,7 +41,9 @@ Paperclip source changes, the Paperclip database, or the Docker socket. The
 published image bundles Python and all runtime dependencies; only `/config` and
 `/data` are external mounts.
 
-The template is only a native Unraid installation mechanism. It does not
+The template is only a native Unraid installation mechanism. It supplies the
+two application credentials as masked runtime environment variables; enter
+them in Unraid without recording them in the template or config file. It does not
 provide “Unraid notifications” and does not depend on Unraid notification
 events. Paperclip is the event source; IFTTT is the initial outbound route.
 
@@ -65,10 +60,9 @@ In IFTTT:
    - `{{Value3}}`: clickable Paperclip URL
 
 5. In **Webhooks → Documentation**, copy the complete generated URL into the
-   protected file `/run/secrets/ifttt_webhook_url` (or provide
-   `IFTTT_WEBHOOK_URL` / `IFTTT_WEBHOOK_URL_FILE`). The notifier posts directly
-   to that URL unchanged; it does not construct the URL and does not need the
-   private key separately.
+   masked Unraid environment variable `IFTTT_WEBHOOK_URL`. The notifier posts
+   directly to that URL unchanged; it does not construct the URL and does not
+   need the private key separately.
 
 ### Webhook JSON payload
 
@@ -116,10 +110,9 @@ Create these directories on the Unraid appdata share:
 ```
 
 Copy `config.example.yaml` to the config directory and set the company ID. The
-template's secret variables use `*_FILE` paths. On ordinary Unraid Docker
-templates, mount each protected secret file read-only into `/run/secrets/` (or
-point the variables at another protected path); the template intentionally does
-not embed or create credentials.
+template exposes `PAPERCLIP_API_KEY` and `IFTTT_WEBHOOK_URL` as masked runtime
+variables; enter them in Unraid without storing them in the public template or
+configuration file.
 
 The only published port is the local health/status endpoint, normally host port
 8080. Keep it on the LAN; `/status` includes operational counters and should not
@@ -135,9 +128,10 @@ Docker socket or Paperclip database access.
 
 ## Secrets
 
-Supported environment variables / `_FILE` variants:
+Supported runtime environment variables:
 
 - `PAPERCLIP_API_KEY`
+- `IFTTT_WEBHOOK_URL`
 - `DISCORD_WEBHOOK_URL`
 - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
 - Per webhook values named by `url_env`, `headers_env`, and `hmac_secret_env`
