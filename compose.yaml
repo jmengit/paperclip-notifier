@@ -1,0 +1,53 @@
+services:
+  paperclip-notifier:
+    image: ghcr.io/jmengit/paperclip-notifier:0.1.0
+    container_name: paperclip-notifier
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    user: "10001:10001"
+    mem_limit: 128m
+    cpus: 0.25
+    environment:
+      PAPERCLIP_API_KEY_FILE: /run/secrets/paperclip_api_key
+      DISCORD_WEBHOOK_URL_FILE: /run/secrets/discord_webhook_url
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+      WEBHOOK_EXAMPLE_POST_URL_FILE: /run/secrets/webhook_example_post_url
+    volumes:
+      - /mnt/appcache/appdata/paperclip-notifier/data:/data
+      - /mnt/appcache/appdata/paperclip-notifier/config:/config:ro
+    secrets:
+      - paperclip_api_key
+      - discord_webhook_url
+      - telegram_bot_token
+      - webhook_example_post_url
+    ports:
+      - "8080:8080"
+    networks:
+      - paperclip
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8080/readyz',timeout=3); assert json.load(r)['ok']"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+secrets:
+  paperclip_api_key:
+    file: ./secrets/paperclip_api_key
+  discord_webhook_url:
+    file: ./secrets/discord_webhook_url
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token
+  webhook_example_post_url:
+    file: ./secrets/webhook_example_post_url
+
+networks:
+  paperclip:
+    external: true
+    name: paperclip_default
