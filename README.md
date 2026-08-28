@@ -28,6 +28,17 @@ The service polls Paperclip's company Activity API, normalizes selected activity
 6. Run `paperclip-notifier --config /config/config.yaml check-paperclip`.
 7. Start with `bootstrap_mode: current`; the initial poll is baseline-only and does not replay history.
 
+The native Unraid template also mounts `/run/secrets` from
+`/mnt/user/appdata/paperclip-notifier/secrets` read-only. Create the two files
+there before starting the container:
+
+```text
+paperclip_api_key
+ifttt_webhooks_key
+```
+
+Do not paste either secret into the XML template or `config.yaml`.
+
 ## Unraid deployment
 
 This is a self-contained single container. GitHub Actions builds and publishes
