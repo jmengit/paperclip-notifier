@@ -15,7 +15,10 @@ class PaperclipClient:
         self.timeout = timeout
 
     def _get(self, path: str) -> Any:
-        response = request("GET", self.base_url + path, headers={"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}, timeout=self.timeout)
+        # The Paperclip instance is intentionally LAN-only HTTP in the native
+        # Unraid deployment.  The explicit opt-in is scoped to this trusted
+        # source client; outbound notification destinations retain SSRF checks.
+        response = request("GET", self.base_url + path, headers={"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}, timeout=self.timeout, allow_private=True)
         if not 200 <= response.status < 300:
             raise HTTPError(f"Paperclip returned HTTP {response.status}", status=response.status)
         try:

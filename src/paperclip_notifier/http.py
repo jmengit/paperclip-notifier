@@ -51,8 +51,12 @@ def validate_destination_url(url: str, allow_private: bool = False) -> None:
         raise HTTPError("destination URL must be absolute HTTP(S)")
     if parsed.username or parsed.password:
         raise HTTPError("destination URL credentials are forbidden")
-    if not allow_private and parsed.scheme == "http":
+    if parsed.scheme == "http" and not allow_private:
         raise HTTPError("HTTP destinations require explicit private-network allowance")
+    # Private HTTP is intentionally allowed only for explicitly opted-in
+    # internal API calls (Paperclip itself), not for outbound destinations.
+    # For HTTPS, still reject private resolved addresses by default to prevent
+    # SSRF through DNS rebinding.
     try:
         resolved = {item[4][0] for item in socket.getaddrinfo(parsed.hostname, parsed.port, type=socket.SOCK_STREAM)}
     except (socket.gaierror, OSError) as exc:
