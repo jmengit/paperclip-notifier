@@ -36,3 +36,18 @@ def test_paperclip_client_opts_into_private_source(monkeypatch):
 
     PaperclipClient("http://192.168.86.201:3200", "secret", "company").health()
     assert calls[0]["allow_private"] is True
+
+
+def test_paperclip_activity_uses_larger_bounded_response_limit(monkeypatch):
+    calls = []
+
+    def fake_request(*args, **kwargs):
+        calls.append(kwargs)
+        return type("Response", (), {"status": 200, "body": b"[]"})()
+
+    monkeypatch.setattr("paperclip_notifier.paperclip.request", fake_request)
+    from paperclip_notifier.paperclip import ACTIVITY_MAX_RESPONSE, PaperclipClient
+
+    PaperclipClient("http://192.168.86.201:3200", "secret", "company").activity()
+    assert calls[0]["max_response"] == ACTIVITY_MAX_RESPONSE
+    assert calls[0]["max_response"] >= 1024 * 1024

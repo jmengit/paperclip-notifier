@@ -7,6 +7,12 @@ from urllib.parse import quote
 from .http import HTTPError, request
 
 
+# A 500-row activity response can legitimately be much larger than the
+# generic outbound-webhook response cap. Keep it bounded, but large enough for
+# the current Paperclip payload shape (observed at roughly 440 KiB).
+ACTIVITY_MAX_RESPONSE = 2 * 1024 * 1024
+
+
 class PaperclipClient:
     def __init__(self, base_url: str, api_key: str, company_id: str, timeout: float = 10):
         self.base_url = base_url.rstrip("/")
@@ -18,7 +24,8 @@ class PaperclipClient:
         # The Paperclip instance is intentionally LAN-only HTTP in the native
         # Unraid deployment.  The explicit opt-in is scoped to this trusted
         # source client; outbound notification destinations retain SSRF checks.
-        response = request("GET", self.base_url + path, headers={"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}, timeout=self.timeout, allow_private=True)
+        max_response = ACTIVITY_MAX_RESPONSE if path.endswith("/activity?limit=500") else 65536
+        response = request("GET", self.base_url + path, headers={"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}, timeout=self.timeout, allow_private=True, max_response=max_response)
         if not 200 <= response.status < 300:
             raise HTTPError(f"Paperclip returned HTTP {response.status}", status=response.status)
         try:
