@@ -118,31 +118,54 @@ def drain(state: State, config: Config) -> None:
             LOG.warning("delivery failed destination=%s event=%s attempts=%d error=%s", row["destination"], row["event_key"], attempts, str(exc))
 
 
-def poll_once(client: PaperclipClient, config: Config, state: State, health: Health, initialized: bool) -> bool:
+def poll_once(client: PaperclipClient, config: Config, state: State, health: Health) -> bool:
     try:
         company = client.company()
         issue_prefix = _company_prefix(company)
+        attention_rows = client.attention_all()
         rows = sorted(client.activity(), key=_sort_key)
-        prepared = []
-        for row in rows:
+        activity_source_key = f"company:{config.company_id}:activity"
+        attention_source_key = f"company:{config.company_id}:attention"
+        # Bootstrap is only a first-run concern.  The long-lived state store is
+        # authoritative across process restarts; an in-memory flag would cause
+        # a restart to baseline newly observed decision comments silently.
+        first_attention_observation = not state.source_initialized(attention_source_key)
+        first_activity_observation = not state.source_initialized(activity_source_key)
+        prepared_attention = []
+        prepared_activity = []
+        all_rows = [{"__source": "attention", **row} for row in attention_rows] + [{"__source": "activity", **row} for row in rows]
+        for row in all_rows:
             event = normalize(config.company_id, company, row)
             kind = classify(event, config.immediate, config.digest)
             if not kind:
                 continue
             url, link_kind = LinkContext(config.public_url, issue_prefix).link(event["subject"]["type"], event["subject"])
-            event["paperclip_url"] = url
-            event["paperclip_url_kind"] = link_kind
-            prepared.append((event["event_id"], event["occurred_at"], event, destinations(config)))
-        if not initialized and config.bootstrap_mode == "current":
-            # Baseline all observed rows, including currently suppressed actions,
-            # so enabling a rule later does not replay old activity unexpectedly.
+            event["paperclip_url"] = event.get("paperclip_url") or url
+            event["paperclip_url_kind"] = "attention_subject" if event.get("paperclip_url") else link_kind
+            item = (event["event_id"], event["occurred_at"], event, destinations(config))
+            (prepared_attention if row["__source"] == "attention" else prepared_activity).append(item)
+        attention_rows_wrapped = [{"__source": "attention", **row} for row in attention_rows]
+        activity_rows_wrapped = [{"__source": "activity", **row} for row in rows]
+        if first_attention_observation and config.bootstrap_mode == "current":
             baseline = []
-            for row in rows:
+            for row in attention_rows_wrapped:
                 event = normalize(config.company_id, company, row)
                 baseline.append((event["event_id"], event["occurred_at"], event, []))
-            state.checkpoint_batch(f"company:{config.company_id}:activity", baseline)
-        elif prepared:
-            state.checkpoint_batch(f"company:{config.company_id}:activity", prepared)
+            state.checkpoint_batch(attention_source_key, baseline)
+        elif prepared_attention:
+            state.checkpoint_batch(attention_source_key, prepared_attention)
+        elif first_attention_observation:
+            state.checkpoint_batch(attention_source_key, [])
+        if first_activity_observation and config.bootstrap_mode == "current":
+            baseline = []
+            for row in activity_rows_wrapped:
+                event = normalize(config.company_id, company, row)
+                baseline.append((event["event_id"], event["occurred_at"], event, []))
+            state.checkpoint_batch(activity_source_key, baseline)
+        elif prepared_activity:
+            state.checkpoint_batch(activity_source_key, prepared_activity)
+        elif first_activity_observation:
+            state.checkpoint_batch(activity_source_key, [])
         health.set_poll()
         return True
     except Exception as exc:
@@ -157,11 +180,9 @@ def run(config: Config) -> None:
     server = ThreadingHTTPServer((config.health_host, config.health_port), _handler(health, state))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     client = PaperclipClient(config.paperclip_base_url, config.api_key, config.company_id, config.request_timeout_seconds)
-    initialized = False
     try:
         while True:
-            if poll_once(client, config, state, health, initialized):
-                initialized = True
+            poll_once(client, config, state, health)
             drain(state, config)
             time.sleep(config.poll_seconds)
     finally:
