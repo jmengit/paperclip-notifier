@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Container version="2">
   <Name>paperclip-notifier</Name>
-  <Repository>ghcr.io/jmengit/paperclip-notifier:v0.3.0</Repository>
+  <Repository>ghcr.io/jmengit/paperclip-notifier:v0.3.3</Repository>
   <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
   <MyIP></MyIP>
