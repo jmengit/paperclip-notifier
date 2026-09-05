@@ -14,10 +14,19 @@ paperclip:
 rules:
   # Start narrowly. These are normalized Paperclip activity action names.
   immediate:
+    # Human action-required activity. Decision comments are matched even when
+    # omitted here, using their API-derived decision-needed marker.
     - approval_created
     - agent_run_failed
     - issue_blocked
     - budget_incident_opened
+    - issue_recovery_action
+    - issue_successful_run_handoff_required
+    - issue_thread_interaction_created
+    - join_request_created
+    - review_requested
+    - productivity_review_created
+    - decision_queue_item_seeded
   digest:
     - issue_created
     - issue_done

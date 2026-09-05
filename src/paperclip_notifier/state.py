@@ -41,6 +41,11 @@ class State:
             row = self.db.execute("SELECT 1 FROM recent_seen WHERE event_key=? AND expires_at>?", (key, time.time())).fetchone()
             return row is not None
 
+    def source_initialized(self, source_key: str) -> bool:
+        with self.lock:
+            row = self.db.execute("SELECT 1 FROM source_state WHERE source_key=?", (source_key,)).fetchone()
+            return row is not None
+
     def checkpoint_batch(self, source_key: str, rows: Iterable[tuple[str, str, dict[str, Any], Iterable[str]]]) -> None:
         with self.lock:
             now = time.time()

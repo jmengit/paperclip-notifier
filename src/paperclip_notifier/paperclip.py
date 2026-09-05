@@ -49,3 +49,33 @@ class PaperclipClient:
                 if isinstance(data.get(key), list):
                     return [x for x in data[key] if isinstance(x, dict)]
         return []
+
+    def attention(self, limit: int = 100) -> dict[str, Any]:
+        """Return the current human-action attention feed."""
+        path = f"/api/companies/{quote(self.company_id, safe='')}/attention?limit={min(max(limit, 1), 100)}"
+        data = self._get(path)
+        if not isinstance(data, dict):
+            return {"items": []}
+        items = data.get("items")
+        data["items"] = [x for x in items if isinstance(x, dict)] if isinstance(items, list) else []
+        return data
+
+    def attention_all(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Read all attention pages, bounded by the requested page size."""
+        items: list[dict[str, Any]] = []
+        cursor: str | None = None
+        for _ in range(100):
+            query = f"?limit={min(max(limit, 1), 100)}"
+            if cursor:
+                query += f"&cursor={quote(cursor, safe='')}"
+            data = self._get(f"/api/companies/{quote(self.company_id, safe='')}/attention{query}")
+            if not isinstance(data, dict):
+                break
+            page = data.get("items")
+            if isinstance(page, list):
+                items.extend(x for x in page if isinstance(x, dict))
+            next_cursor = data.get("nextCursor")
+            if not next_cursor or next_cursor == cursor:
+                break
+            cursor = str(next_cursor)
+        return items
