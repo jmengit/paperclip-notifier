@@ -51,3 +51,18 @@ def test_paperclip_activity_uses_larger_bounded_response_limit(monkeypatch):
     PaperclipClient("http://192.168.86.201:3200", "secret", "company").activity()
     assert calls[0]["max_response"] == ACTIVITY_MAX_RESPONSE
     assert calls[0]["max_response"] >= 1024 * 1024
+
+
+def test_paperclip_attention_uses_active_feed_without_unscoped_all(monkeypatch):
+    calls = []
+
+    def fake_request(*args, **kwargs):
+        calls.append(args[1])
+        return type("Response", (), {"status": 200, "body": b'{"items": []}'})()
+
+    monkeypatch.setattr("paperclip_notifier.paperclip.request", fake_request)
+    from paperclip_notifier.paperclip import PaperclipClient
+
+    PaperclipClient("http://192.168.86.201:3200", "secret", "company").attention_all()
+    assert "all=true" not in calls[0]
+    assert "limit=100" in calls[0]

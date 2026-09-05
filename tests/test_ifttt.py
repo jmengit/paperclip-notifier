@@ -32,6 +32,36 @@ def test_ifttt_posts_three_values_to_supplied_url(monkeypatch):
     assert seen["headers"]["X-Paperclip-Notifier-Event-Id"] == "evt-1"
 
 
+def test_decision_needed_comment_is_classified_immediately():
+    from paperclip_notifier.rules import classify
+
+    assert classify(
+        {"event_type": "issue.comment_added", "decision_needed": True},
+        ("approval_created",),
+        (),
+    ) == "immediate"
+
+
+def test_non_decision_comment_is_not_classified():
+    from paperclip_notifier.rules import classify
+
+    assert classify(
+        {"event_type": "issue.comment_added", "decision_needed": False},
+        ("approval_created",),
+        (),
+    ) is None
+
+
+def test_attention_items_are_always_immediate():
+    from paperclip_notifier.rules import classify
+
+    assert classify(
+        {"event_type": "blocker_attention", "source": {"type": "paperclip_attention"}},
+        (),
+        (),
+    ) == "immediate"
+
+
 def test_ifttt_url_is_not_rewritten(monkeypatch):
     seen = {}
 
