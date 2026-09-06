@@ -140,8 +140,8 @@ def poll_once(client: PaperclipClient, config: Config, state: State, health: Hea
             if not kind:
                 continue
             url, link_kind = LinkContext(config.public_url, issue_prefix).link(event["subject"]["type"], event["subject"])
-            event["paperclip_url"] = event.get("paperclip_url") or url
-            event["paperclip_url_kind"] = "attention_subject" if event.get("paperclip_url") else link_kind
+            event["paperclip_url"] = url
+            event["paperclip_url_kind"] = link_kind
             item = (event["event_id"], event["occurred_at"], event, destinations(config))
             (prepared_attention if row["__source"] == "attention" else prepared_activity).append(item)
         attention_rows_wrapped = [{"__source": "attention", **row} for row in attention_rows]

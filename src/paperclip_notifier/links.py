@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, urljoin, urlsplit
 
 
 @dataclass(frozen=True)
@@ -10,9 +10,16 @@ class LinkContext:
     issue_prefix: str
 
     def link(self, subject_type: str, subject: dict) -> tuple[str, str]:
-        """Build a link only from normalized, API-derived fields."""
+        """Build an absolute link from normalized, API-derived fields."""
         base = self.public_url.rstrip("/") + "/"
         kind = subject_type.lower().replace("-", "_")
+        href = str(subject.get("href") or "").strip()
+        if href:
+            parsed = urlsplit(href)
+            if parsed.scheme and parsed.netloc:
+                return href, "attention_subject"
+            if href.startswith("/"):
+                return urljoin(base, href), "attention_subject"
         ident = str(subject.get("identifier") or subject.get("id") or "").strip()
         if not ident:
             return urljoin(base, f"{quote(self.issue_prefix, safe='')}/activity"), "activity"
