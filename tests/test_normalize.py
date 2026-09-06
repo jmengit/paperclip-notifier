@@ -60,5 +60,33 @@ def test_attention_item_uses_dedup_identity_and_subject_url():
     assert event["source"]["type"] == "paperclip_attention"
     assert event["attention"]["dedup_key"] == "blocker:issue-1"
     assert event["subject"]["identifier"] == "PAP-1"
+    assert event["subject"]["href"] == "/PAP/issues/PAP-1"
     assert event["paperclip_url"] == "/PAP/issues/PAP-1"
     assert "Unblock" in event["summary"]
+
+
+def test_relative_attention_href_is_resolved_to_public_url():
+    from paperclip_notifier.links import LinkContext
+
+    assert LinkContext("https://paperclip.example", "PAP").link(
+        "issue_thread_interaction",
+        {
+            "identifier": "PAP-247",
+            "href": "/PAP/issues/PAP-247#interaction-123",
+        },
+    ) == (
+        "https://paperclip.example/PAP/issues/PAP-247#interaction-123",
+        "attention_subject",
+    )
+
+
+def test_absolute_attention_href_is_preserved():
+    from paperclip_notifier.links import LinkContext
+
+    assert LinkContext("https://paperclip.example", "PAP").link(
+        "issue_thread_interaction",
+        {"href": "https://paperclip.example/PAP/issues/PAP-247#interaction-123"},
+    ) == (
+        "https://paperclip.example/PAP/issues/PAP-247#interaction-123",
+        "attention_subject",
+    )

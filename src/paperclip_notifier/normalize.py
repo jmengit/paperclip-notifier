@@ -63,6 +63,7 @@ def normalize(company_id: str, company: dict[str, Any], row: dict[str, Any]) -> 
         "title": raw_subject.get("title") or _first(row, "entityTitle", "entity_title", "title", default=details.get("title")),
         "agent_id": _first(row, "agentId", "agent_id", default=details.get("agentId", details.get("agent_id"))),
         "run_id": run_id,
+        "href": _first(raw_subject, "href", default=_first(raw_related, "href", default=None)),
     }
     if raw_related.get("id") and not subject.get("id"):
         subject["id"] = raw_related["id"]
