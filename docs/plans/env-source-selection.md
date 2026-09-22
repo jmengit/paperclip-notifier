@@ -2,7 +2,7 @@
 
 ## Objective
 
-Upgrade `paperclip-notifier` so an operator can select any supported Paperclip input source through container environment variables, without rebuilding the image or editing the mounted YAML file. Deploy the released image through Arcane with the operator's desired state: notify on every new active Paperclip Attention/inbox item and do not notify from Company Activity events such as `issue.created`.
+Upgrade `paperclip-notifier` so an operator can select any supported Paperclip input source through container environment variables, without rebuilding the image or editing the mounted YAML file. Support an inbox-only deployment state: notify on every new active Paperclip Attention/inbox item and do not notify from Company Activity events such as `issue.created`.
 
 ## Current behavior and problem
 

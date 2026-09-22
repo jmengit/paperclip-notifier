@@ -10,7 +10,7 @@ route is Paperclip → this container → IFTTT Webhooks → Discord.
 
 The service polls Paperclip's Attention and company Activity APIs, normalizes selected activity into a versioned event, builds a canonical link to the exact Paperclip object, and writes one outbox row per destination to persistent SQLite before delivery.
 
-- Internal API (native Unraid template default): `http://192.168.50.25:3200`
+- Internal API (native Unraid template default): `http://paperclip-host:3200`
 - Internal API (optional shared user-defined Docker network): `http://paperclip:3100`
 - Public links: `https://paperclip.example.com/{companyPrefix}/...`
 - Persistence: `/data/state.sqlite3`
@@ -278,7 +278,7 @@ repositories**, or use the template URL:
 `https://raw.githubusercontent.com/jmengit/paperclip-notifier/main/unraid-template.xml`
 
 The template defaults to the existing Paperclip LAN endpoint
-`http://192.168.50.25:3200`. If the notifier is attached to the same custom
+`http://paperclip-host:3200`. If the notifier is attached to the same custom
 Docker network as Paperclip, use the Paperclip service/container DNS name and
 port `3100` instead. Do not use `paperclip:3100` unless that DNS name exists on
 the selected network.
@@ -372,4 +372,4 @@ This is an independent integration and is not an official Paperclip AI product.
 ## Source
 
 - Paperclip: https://github.com/paperclipai/paperclip
-- Paperclip public instance configured by this deployment: https://paperclip.example.com
+- Paperclip project: https://github.com/paperclipai/paperclip

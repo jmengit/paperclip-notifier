@@ -7,7 +7,7 @@
 4. Set `paperclip.company_id`, enable `destinations.ifttt`, and leave direct Discord/Telegram disabled for the initial deployment.
 5. In IFTTT, create a Webhooks → Discord Applet using the exact event name `paperclip_activity`. Map `Value1` to the message summary, `Value2` to event type, and `Value3` to the Paperclip link.
 6. In the template's masked environment-variable fields, supply `PAPERCLIP_API_KEY` and the complete IFTTT URL as `IFTTT_WEBHOOK_URL`. Keep both values out of GitHub, screenshots, shell history, and command output. The application never needs the IFTTT private key separately.
-7. Confirm the Paperclip API address. The template default is `http://192.168.50.25:3200`; use `http://<paperclip-container>:3100` only when both containers share a user-defined Docker network.
+7. Confirm the Paperclip API address. The template default is `http://paperclip-host:3200`; use `http://<paperclip-container>:3100` only when both containers share a user-defined Docker network.
 8. Set the host health port to an unused LAN-only port, default `18080` because Unraid already uses `8080`. Do not publish it through Cloudflare or a reverse proxy.
 9. Pin the image tag or digest. Start the container.
 10. Check **Logs** for a successful poll and no configuration error.
@@ -38,7 +38,7 @@ Stop the container, select the previous pinned image tag, and restart with the s
 
 ## Connectivity options
 
-- **Simplest:** bridge networking with `PAPERCLIP_BASE_URL=http://192.168.50.25:3200`.
+- **Simplest:** bridge networking with `PAPERCLIP_BASE_URL=http://paperclip-host:3200`.
 - **Preferred when available:** attach to the Paperclip user-defined network and use Paperclip's service DNS name on port `3100`.
 - **Do not assume:** `paperclip:3100` is not a universal hostname; it works only if the selected network provides that alias.
 

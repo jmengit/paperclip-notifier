@@ -25,7 +25,7 @@
   <Config Name="Persistent data" Target="/data" Default="/mnt/user/appdata/paperclip-notifier/data" Mode="rw" Description="SQLite state, outbox, checkpoints, and dead-letter records." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/paperclip-notifier/data</Config>
 
   <Config Name="Health/API port" Target="8080" Default="18080" Mode="tcp" Description="Optional local health/status endpoint. Do not expose publicly." Type="Port" Display="always" Required="true" Mask="false">18080</Config>
-  <Environment Name="PAPERCLIP_BASE_URL" Default="http://192.168.50.25:3200" Description="Paperclip API base URL. Native bridge deployment uses the host-published LAN port 3200." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_BASE_URL" Default="http://paperclip-host:3200" Description="Paperclip API base URL. Native bridge deployment uses the host-published LAN port 3200." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
   <Environment Name="PAPERCLIP_PUBLIC_URL" Default="https://paperclip.example.com" Description="Public browser origin used to build clickable links." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
   <Environment Name="PAPERCLIP_COMPANY_ID" Default="" Description="Paperclip company ID." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
   <Environment Name="PAPERCLIP_API_KEY" Default="" Description="Paperclip board API key. Supply through Unraid's masked environment-variable field; never commit it." Type="Variable" Display="always" Required="true" Mask="true"></Environment>

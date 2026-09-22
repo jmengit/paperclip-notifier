@@ -3,7 +3,7 @@ paperclip:
   # Native Unraid bridge deployment: Paperclip's published LAN address.
   # If both containers share a user-defined Docker network, use the Paperclip
   # container DNS name and its internal port (usually 3100) instead.
-  base_url: http://192.168.50.25:3200
+  base_url: http://paperclip-host:3200
   # Browser-facing origin included in notifications.
   public_url: https://paperclip.example.com
   company_id: replace-with-company-id
