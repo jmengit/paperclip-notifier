@@ -32,48 +32,185 @@ The native Unraid template supplies both application secrets as masked runtime
 environment variables. Do not paste either secret into the XML template,
 `config.yaml`, Git, or a command line.
 
-### Source selection
+## Notification source and event configuration
 
-Attention and Company Activity polling are independently configurable. YAML
-supports the same settings, while environment variables take precedence:
+Paperclip exposes two independent inputs. They are configured separately:
 
-```yaml
-sources:
-  attention:
-    enabled: true
-    source_kinds: []  # empty means all Attention sourceKind values
-  activity:
-    enabled: true
-rules:
-  immediate: [approval_created]
-  digest: [issue_created, issue_done]
+1. **Attention (the Paperclip inbox):** every active matching inbox item sends
+   an immediate notification. `PAPERCLIP_ATTENTION_SOURCE_KINDS` filters inbox
+   categories; it does not accept Activity event names such as `issue_created`.
+2. **Company Activity:** actions returned by Paperclip's company Activity API
+   notify only when they are listed in either the immediate or digest event
+   variable. `PAPERCLIP_ACTIVITY_ENABLED=false` disables Activity polling
+   completely, regardless of the event lists.
+
+Environment variables override the equivalent YAML values.
+
+### Configuration variables and defaults
+
+- `PAPERCLIP_ATTENTION_ENABLED`
+  - Strict boolean controlling Attention/inbox polling.
+  - **Built-in default: `true`.**
+- `PAPERCLIP_ATTENTION_SOURCE_KINDS`
+  - Comma-separated exact allowlist of Attention `sourceKind` values.
+  - **Built-in default: blank, meaning all Attention kinds.**
+  - Current kinds: `approval`, `decision`, `issue_thread_interaction`,
+    `join_request`, `recovery_action`, `productivity_review`,
+    `blocker_attention`, `review`, `failed_run`, `budget_alert`, and
+    `agent_error_alert`.
+  - `productivity_review` is retained for legacy persisted records; current
+    Paperclip versions do not generate new feed items for it.
+- `PAPERCLIP_ACTIVITY_ENABLED`
+  - Strict boolean controlling Company Activity polling.
+  - **Built-in default: `true`.**
+- `PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS`
+  - Comma-separated Activity actions that send individually and immediately.
+  - **Default when unset:** use `rules.immediate` from the mounted YAML file.
+    Set the variable blank to select no ordinary immediate events.
+- `PAPERCLIP_ACTIVITY_DIGEST_EVENTS`
+  - Comma-separated Activity actions combined during
+    `rules.digest_window_seconds` before delivery.
+  - **Default when unset:** use `rules.digest` from the mounted YAML file. Set
+    the variable blank to select no digest events.
+
+The image requires a mounted `/config/config.yaml`; therefore the exact
+Activity defaults are supplied by that file rather than hard-coded by the
+image. The repository's provided Compose deployment mounts
+`config.example.yaml`, whose default rules are highlighted below.
+
+For booleans, accepted values are `true`/`false`, `1`/`0`, `yes`/`no`, and
+`on`/`off`. Event names are case-insensitive and normalize `.`, `-`, and `_`
+to the same form, so `issue.created`, `issue-created`, and `issue_created` all
+match. Unknown names are accepted for forward compatibility with future
+Paperclip releases. Empty items inside a comma-separated list are invalid.
+
+**Unset and explicitly blank are different for Activity event variables:**
+
+- Unset `PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS` or
+  `PAPERCLIP_ACTIVITY_DIGEST_EVENTS`: use the corresponding YAML list.
+- Set either variable to an empty value: override its YAML list with no events.
+
+A decision-needed `issue.comment_added` item is a special case: when Activity
+polling is enabled, the notifier sends it immediately based on Paperclip's
+`Decision needed` marker even if it is absent from the immediate list.
+
+### Activity event options
+
+The notifier intentionally does not hard-code a closed allowlist: **any action
+string returned by Paperclip's company Activity API can be placed in either
+Activity variable.** This lets newer Paperclip actions work without requiring a
+new notifier image. Put an action in only one list; if it appears in both, the
+immediate list wins.
+
+Paperclip's current canonical event catalog is:
+
+```text
+company_created
+company_updated
+project_created
+project_updated
+project_workspace_created
+project_workspace_updated
+project_workspace_deleted
+issue_created
+issue_updated
+issue_comment_created
+issue_document_created
+issue_document_updated
+issue_document_deleted
+issue_relations_updated
+issue_checked_out
+issue_released
+issue_assignment_wakeup_requested
+agent_created
+agent_updated
+agent_status_changed
+agent_error_cleared
+agent_run_started
+agent_run_finished
+agent_run_failed
+agent_run_cancelled
+goal_created
+goal_updated
+approval_created
+approval_decided
+budget_incident_opened
+budget_incident_resolved
+cost_event_created
+activity_logged
 ```
 
-Supported runtime overrides:
+The company Activity feed also contains operational/legacy actions not included
+in that canonical plugin-event catalog. Known actions supported by the notifier
+and used by its sample rules include:
 
-- `PAPERCLIP_ATTENTION_ENABLED` — strict boolean; defaults to `true`.
-- `PAPERCLIP_ATTENTION_SOURCE_KINDS` — optional comma-separated exact allowlist;
-  empty/unset means all source kinds.
-- `PAPERCLIP_ACTIVITY_ENABLED` — strict boolean; defaults to `true`.
-- `PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS` — comma-separated normalized event names
-  replacing `rules.immediate` when set.
-- `PAPERCLIP_ACTIVITY_DIGEST_EVENTS` — comma-separated normalized event names
-  replacing `rules.digest` when set.
+```text
+issue_comment_added
+issue_done
+issue_blocked
+issue_recovery_action
+issue_successful_run_handoff_required
+issue_thread_interaction_created
+join_request_created
+review_requested
+productivity_review_created
+decision_queue_item_seeded
+```
 
-Boolean values accept only `true`/`false`, `1`/`0`, `yes`/`no`, or `on`/`off`.
-Unknown names are allowed, but empty comma-separated entries are rejected. At
-least one source must remain enabled. Disabled surfaces are not polled, and
-source checkpoints remain intact while a surface is disabled.
+That second list is not exhaustive because Paperclip can add Activity actions.
+Use the exact `action` from Paperclip's Activity API; normalization lets the env
+value use dots or underscores.
 
-For an inbox-only deployment, set `PAPERCLIP_ATTENTION_ENABLED=true`, leave
-`PAPERCLIP_ATTENTION_SOURCE_KINDS` empty, and set
-`PAPERCLIP_ACTIVITY_ENABLED=false`. This polls only Attention, so an
-Activity-only `issue.created` event cannot enter the outbox.
+### Default configuration shipped by this repository
 
-Environment source settings are non-secret and may be configured as Unraid
-variables. Keep API keys and webhook URLs masked.
+The repository's `compose.yaml` mounts `config.example.yaml`. With that
+provided deployment, if the Activity event environment variables are
+**unset**, the effective default rules are:
 
-The release containing this public configuration feature is v0.4.0.
+- Immediate: `approval_created`, `agent_run_failed`, `issue_blocked`,
+  `budget_incident_opened`, `issue_recovery_action`,
+  `issue_successful_run_handoff_required`,
+  `issue_thread_interaction_created`, `join_request_created`,
+  `review_requested`, `productivity_review_created`, and
+  `decision_queue_item_seeded`.
+- 60-second digest: `issue_created` and `issue_done`.
+
+### Examples
+
+Inbox only, all inbox categories, no Activity events:
+
+```env
+PAPERCLIP_ATTENTION_ENABLED=true
+PAPERCLIP_ATTENTION_SOURCE_KINDS=
+PAPERCLIP_ACTIVITY_ENABLED=false
+```
+
+All inbox categories plus immediate issue creation and failed-run alerts, with
+completed issues delivered as a digest:
+
+```env
+PAPERCLIP_ATTENTION_ENABLED=true
+PAPERCLIP_ATTENTION_SOURCE_KINDS=
+PAPERCLIP_ACTIVITY_ENABLED=true
+PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS=issue_created,agent_run_failed
+PAPERCLIP_ACTIVITY_DIGEST_EVENTS=issue_done
+```
+
+Activity only, with no inbox notifications:
+
+```env
+PAPERCLIP_ATTENTION_ENABLED=false
+PAPERCLIP_ACTIVITY_ENABLED=true
+PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS=approval_created,issue_blocked
+PAPERCLIP_ACTIVITY_DIGEST_EVENTS=issue_created,issue_done
+```
+
+At least one source must remain enabled. Disabled sources are not polled, and
+their durable checkpoints are retained so toggling a source does not reset or
+replay its history. These settings are non-secret and may be configured as
+Unraid variables; keep API keys and webhook URLs masked.
+
+Environment-based source selection was added in v0.4.0.
 
 
 ## Unraid deployment
