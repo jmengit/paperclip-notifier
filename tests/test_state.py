@@ -16,6 +16,16 @@ def test_checkpoint_and_outbox_survive_restart(tmp_path: Path):
     state.deliver_success("e1", "webhook")
 
 
+def test_checkpoint_does_not_replay_rows_after_dedup_retention_expires(tmp_path: Path):
+    state = State(tmp_path)
+    event = {"event_id": "e1", "occurred_at": "2026-08-27T00:00:00Z"}
+    state.checkpoint_batch("attention", [("e1", event["occurred_at"], event, ["webhook"])])
+    state.db.execute("DELETE FROM recent_seen")
+    state.checkpoint_batch("attention", [("e1", event["occurred_at"], event, ["webhook"])])
+    assert len(state.pending()) == 1
+    state.close()
+
+
 def test_summary_can_be_read_from_health_thread(tmp_path: Path):
     state = State(tmp_path)
     state.checkpoint_batch("source", [("e1", "2026-08-27T00:00:00Z", {"event_id": "e1"}, ["webhook"])])

@@ -1,6 +1,6 @@
 services:
   paperclip-notifier:
-    image: ghcr.io/jmengit/paperclip-notifier:v0.2.1
+    image: ghcr.io/jmengit/paperclip-notifier:v0.4.0
     container_name: paperclip-notifier
     restart: unless-stopped
     read_only: true
@@ -15,6 +15,11 @@ services:
     cpus: 0.25
     environment:
       PAPERCLIP_API_KEY: ${PAPERCLIP_API_KEY:?set in protected runtime environment}
+      PAPERCLIP_ATTENTION_ENABLED: ${PAPERCLIP_ATTENTION_ENABLED:-true}
+      PAPERCLIP_ATTENTION_SOURCE_KINDS: ${PAPERCLIP_ATTENTION_SOURCE_KINDS:-}
+      PAPERCLIP_ACTIVITY_ENABLED: ${PAPERCLIP_ACTIVITY_ENABLED:-true}
+      PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS: ${PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS:-}
+      PAPERCLIP_ACTIVITY_DIGEST_EVENTS: ${PAPERCLIP_ACTIVITY_DIGEST_EVENTS:-}
       IFTTT_WEBHOOK_URL: ${IFTTT_WEBHOOK_URL:?set in protected runtime environment}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}

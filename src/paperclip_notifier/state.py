@@ -55,6 +55,15 @@ class State:
                 last_at = state["last_created_at"] if state else None
                 last_keys = set(json.loads(state["last_keys"]) if state else [])
                 for key, created_at, payload, destinations in rows:
+                    # The per-surface checkpoint is durable and authoritative;
+                    # recent_seen is only a retention-based safety net. This
+                    # prevents a disabled-then-reenabled source from replaying
+                    # old rows after the seven-day deduplication window.
+                    if state and (
+                        created_at < (last_at or "")
+                        or (created_at == last_at and key in last_keys)
+                    ):
+                        continue
                     if self.known(key):
                         continue
                     for destination in destinations:

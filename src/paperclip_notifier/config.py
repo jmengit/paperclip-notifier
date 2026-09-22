@@ -15,6 +15,36 @@ class ConfigError(ValueError):
     pass
 
 
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_FALSE_VALUES = {"0", "false", "no", "off"}
+
+
+def _strict_bool(name: str, value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in _TRUE_VALUES:
+        return True
+    if normalized in _FALSE_VALUES:
+        return False
+    raise ConfigError(f"{name} must be a strict boolean (one of true/false, 1/0, yes/no, on/off)")
+
+
+def _env_bool(name: str, environ: dict[str, str], default: bool) -> bool:
+    if name not in environ:
+        return default
+    return _strict_bool(name, environ[name])
+
+
+def _split_env_list(name: str, environ: dict[str, str]) -> tuple[str, ...] | None:
+    if name not in environ:
+        return None
+    raw = environ[name]
+    if not raw.strip():
+        return ()
+    values = tuple(part.strip() for part in raw.split(","))
+    if any(not value for value in values):
+        raise ConfigError(f"{name} must not contain empty comma-separated entries")
+    return values
+
 
 def _env(name: str, default: str | None = None) -> str | None:
     value = os.getenv(name, default)
@@ -153,6 +183,9 @@ class Config:
     immediate: tuple[str, ...] = ()
     digest: tuple[str, ...] = ()
     digest_window_seconds: int = 60
+    attention_enabled: bool = True
+    attention_source_kinds: tuple[str, ...] = ()
+    activity_enabled: bool = True
     discord_webhook_url: str | None = None
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
@@ -177,7 +210,37 @@ class Config:
         poll = float(paperclip.get("poll_seconds", 15))
         if not 5 <= poll <= 300:
             raise ConfigError("poll_seconds must be 5..300")
+        sources = raw.get("sources") or {}
+        attention_source = sources.get("attention") or {}
+        activity_source = sources.get("activity") or {}
+        if not isinstance(attention_source, dict) or not isinstance(activity_source, dict):
+            raise ConfigError("sources.attention and sources.activity must be mappings")
+        attention_enabled = attention_source.get("enabled", True)
+        activity_enabled = activity_source.get("enabled", True)
+        if not isinstance(attention_enabled, bool) or not isinstance(activity_enabled, bool):
+            raise ConfigError("sources attention/activity enabled values must be booleans")
+        raw_attention_kinds = attention_source.get("source_kinds") or []
+        if not isinstance(raw_attention_kinds, (list, tuple)):
+            raise ConfigError("sources.attention.source_kinds must be a list")
+        attention_kinds = tuple(str(x).strip() for x in raw_attention_kinds)
+        if any(not value for value in attention_kinds):
+            raise ConfigError("sources.attention.source_kinds must not contain empty entries")
         rules = raw.get("rules") or {}
+        immediate = tuple(str(x) for x in rules.get("immediate", []))
+        digest = tuple(str(x) for x in rules.get("digest", []))
+        env_attention_enabled = _env_bool("PAPERCLIP_ATTENTION_ENABLED", env, attention_enabled)
+        env_activity_enabled = _env_bool("PAPERCLIP_ACTIVITY_ENABLED", env, activity_enabled)
+        env_attention_kinds = _split_env_list("PAPERCLIP_ATTENTION_SOURCE_KINDS", env)
+        env_immediate = _split_env_list("PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS", env)
+        env_digest = _split_env_list("PAPERCLIP_ACTIVITY_DIGEST_EVENTS", env)
+        if env_attention_kinds is not None:
+            attention_kinds = env_attention_kinds
+        if env_immediate is not None:
+            immediate = env_immediate
+        if env_digest is not None:
+            digest = env_digest
+        if not env_attention_enabled and not env_activity_enabled:
+            raise ConfigError("at least one Paperclip source must be enabled")
         destinations = raw.get("destinations") or {}
         discord = destinations.get("discord") or {}
         telegram = destinations.get("telegram") or {}
@@ -216,9 +279,12 @@ class Config:
             request_timeout_seconds=float(paperclip.get("request_timeout_seconds", 10)),
             bootstrap_mode=mode,
             bootstrap_lookback_minutes=int(paperclip.get("bootstrap_lookback_minutes", 0)),
-            immediate=tuple(str(x) for x in rules.get("immediate", [])),
-            digest=tuple(str(x) for x in rules.get("digest", [])),
+            immediate=immediate,
+            digest=digest,
             digest_window_seconds=int(rules.get("digest_window_seconds", 60)),
+            attention_enabled=env_attention_enabled,
+            attention_source_kinds=attention_kinds,
+            activity_enabled=env_activity_enabled,
             discord_webhook_url=discord_url,
             telegram_bot_token=telegram_token,
             telegram_chat_id=telegram_chat,

@@ -8,7 +8,7 @@ route is Paperclip → this container → IFTTT Webhooks → Discord.
 
 ## Design
 
-The service polls Paperclip's company Activity API, normalizes selected activity into a versioned event, builds a canonical link to the exact Paperclip object, and writes one outbox row per destination to persistent SQLite before delivery.
+The service polls Paperclip's Attention and company Activity APIs, normalizes selected activity into a versioned event, builds a canonical link to the exact Paperclip object, and writes one outbox row per destination to persistent SQLite before delivery.
 
 - Internal API (native Unraid template default): `http://192.168.50.25:3200`
 - Internal API (optional shared user-defined Docker network): `http://paperclip:3100`
@@ -31,6 +31,50 @@ The service polls Paperclip's company Activity API, normalizes selected activity
 The native Unraid template supplies both application secrets as masked runtime
 environment variables. Do not paste either secret into the XML template,
 `config.yaml`, Git, or a command line.
+
+### Source selection
+
+Attention and Company Activity polling are independently configurable. YAML
+supports the same settings, while environment variables take precedence:
+
+```yaml
+sources:
+  attention:
+    enabled: true
+    source_kinds: []  # empty means all Attention sourceKind values
+  activity:
+    enabled: true
+rules:
+  immediate: [approval_created]
+  digest: [issue_created, issue_done]
+```
+
+Supported runtime overrides:
+
+- `PAPERCLIP_ATTENTION_ENABLED` — strict boolean; defaults to `true`.
+- `PAPERCLIP_ATTENTION_SOURCE_KINDS` — optional comma-separated exact allowlist;
+  empty/unset means all source kinds.
+- `PAPERCLIP_ACTIVITY_ENABLED` — strict boolean; defaults to `true`.
+- `PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS` — comma-separated normalized event names
+  replacing `rules.immediate` when set.
+- `PAPERCLIP_ACTIVITY_DIGEST_EVENTS` — comma-separated normalized event names
+  replacing `rules.digest` when set.
+
+Boolean values accept only `true`/`false`, `1`/`0`, `yes`/`no`, or `on`/`off`.
+Unknown names are allowed, but empty comma-separated entries are rejected. At
+least one source must remain enabled. Disabled surfaces are not polled, and
+source checkpoints remain intact while a surface is disabled.
+
+For an inbox-only deployment, set `PAPERCLIP_ATTENTION_ENABLED=true`, leave
+`PAPERCLIP_ATTENTION_SOURCE_KINDS` empty, and set
+`PAPERCLIP_ACTIVITY_ENABLED=false`. This polls only Attention, so an
+Activity-only `issue.created` event cannot enter the outbox.
+
+Environment source settings are non-secret and may be configured as Unraid
+variables. Keep API keys and webhook URLs masked.
+
+The release containing this public configuration feature is v0.4.0.
+
 
 ## Unraid deployment
 
@@ -128,13 +172,15 @@ Docker socket or Paperclip database access.
 
 ## Secrets
 
-Supported runtime environment variables:
+Supported secret runtime environment variables:
 
 - `PAPERCLIP_API_KEY`
 - `IFTTT_WEBHOOK_URL`
 - `DISCORD_WEBHOOK_URL`
 - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
 - Per webhook values named by `url_env`, `headers_env`, and `hmac_secret_env`
+
+The source-selection variables listed above are non-secret configuration and may be visible in deployment manifests.
 
 Secrets are never intentionally included in events or logs. Do not put bot tokens or webhook URLs in GitHub issues, fixtures, config files, or command lines.
 

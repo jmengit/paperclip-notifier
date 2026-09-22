@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Container version="2">
   <Name>paperclip-notifier</Name>
-  <Repository>ghcr.io/jmengit/paperclip-notifier:v0.3.4</Repository>
+  <Repository>ghcr.io/jmengit/paperclip-notifier:v0.4.0</Repository>
   <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
   <MyIP></MyIP>
@@ -29,6 +29,11 @@
   <Environment Name="PAPERCLIP_PUBLIC_URL" Default="https://paperclip.example.com" Description="Public browser origin used to build clickable links." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
   <Environment Name="PAPERCLIP_COMPANY_ID" Default="" Description="Paperclip company ID." Type="Variable" Display="always" Required="true" Mask="false"></Environment>
   <Environment Name="PAPERCLIP_API_KEY" Default="" Description="Paperclip board API key. Supply through Unraid's masked environment-variable field; never commit it." Type="Variable" Display="always" Required="true" Mask="true"></Environment>
+  <Environment Name="PAPERCLIP_ATTENTION_ENABLED" Default="true" Description="Strict boolean source gate. Poll the Attention/inbox API when true." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_ATTENTION_SOURCE_KINDS" Default="" Description="Optional comma-separated exact Attention sourceKind allowlist. Empty means all kinds; no empty entries." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_ACTIVITY_ENABLED" Default="true" Description="Strict boolean source gate. Poll the Company Activity API when true." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS" Default="" Description="Optional comma-separated normalized Activity event allowlist overriding rules.immediate." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
+  <Environment Name="PAPERCLIP_ACTIVITY_DIGEST_EVENTS" Default="" Description="Optional comma-separated normalized Activity event allowlist overriding rules.digest." Type="Variable" Display="advanced" Required="false" Mask="false"></Environment>
   <Environment Name="IFTTT_WEBHOOK_URL" Default="" Description="Complete IFTTT Webhooks URL, including event path and private key. Supply through Unraid's masked environment-variable field; never commit it." Type="Variable" Display="always" Required="true" Mask="true"></Environment>
   <Environment Name="DISCORD_WEBHOOK_URL" Default="" Description="Optional direct Discord webhook URL. Supply only as a masked runtime variable when enabled." Type="Variable" Display="advanced" Required="false" Mask="true"></Environment>
   <Environment Name="TELEGRAM_BOT_TOKEN" Default="" Description="Optional Telegram bot token. Supply only as a masked runtime variable when enabled." Type="Variable" Display="advanced" Required="false" Mask="true"></Environment>

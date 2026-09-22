@@ -11,6 +11,17 @@ paperclip:
   request_timeout_seconds: 10
   bootstrap_mode: current
   data_dir: /data
+# Source surfaces can also be overridden at runtime with:
+# PAPERCLIP_ATTENTION_ENABLED, PAPERCLIP_ATTENTION_SOURCE_KINDS,
+# PAPERCLIP_ACTIVITY_ENABLED, PAPERCLIP_ACTIVITY_IMMEDIATE_EVENTS, and
+# PAPERCLIP_ACTIVITY_DIGEST_EVENTS. Environment values take precedence.
+sources:
+  attention:
+    enabled: true
+    # Empty means every Attention sourceKind.
+    source_kinds: []
+  activity:
+    enabled: true
 rules:
   # Start narrowly. These are normalized Paperclip activity action names.
   immediate:

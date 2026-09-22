@@ -69,7 +69,7 @@ def request(method: str, url: str, *, headers: dict[str, str] | None = None, bod
             timeout: float = 10, verify_tls: bool = True, allow_private: bool = False,
             max_response: int = 65536) -> HTTPResponse:
     validate_destination_url(url, allow_private=allow_private)
-    request_headers = {"User-Agent": "paperclip-notifier/0.1.0", **(headers or {})}
+    request_headers = {"User-Agent": "paperclip-notifier/0.4.0", **(headers or {})}
     context = ssl.create_default_context() if verify_tls else ssl._create_unverified_context()
     handlers: list[Any] = [NoRedirect()]
     if parsed := urllib.parse.urlsplit(url):

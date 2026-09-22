@@ -122,15 +122,21 @@ def poll_once(client: PaperclipClient, config: Config, state: State, health: Hea
     try:
         company = client.company()
         issue_prefix = _company_prefix(company)
-        attention_rows = client.attention_all()
-        rows = sorted(client.activity(), key=_sort_key)
+        attention_rows = client.attention_all() if config.attention_enabled else []
+        if config.attention_source_kinds:
+            allowed_kinds = {kind.lower() for kind in config.attention_source_kinds}
+            attention_rows = [
+                row for row in attention_rows
+                if str(row.get("sourceKind") or row.get("source_kind") or "").strip().lower() in allowed_kinds
+            ]
+        rows = sorted(client.activity(), key=_sort_key) if config.activity_enabled else []
         activity_source_key = f"company:{config.company_id}:activity"
         attention_source_key = f"company:{config.company_id}:attention"
         # Bootstrap is only a first-run concern.  The long-lived state store is
         # authoritative across process restarts; an in-memory flag would cause
         # a restart to baseline newly observed decision comments silently.
-        first_attention_observation = not state.source_initialized(attention_source_key)
-        first_activity_observation = not state.source_initialized(activity_source_key)
+        first_attention_observation = config.attention_enabled and not state.source_initialized(attention_source_key)
+        first_activity_observation = config.activity_enabled and not state.source_initialized(activity_source_key)
         prepared_attention = []
         prepared_activity = []
         all_rows = [{"__source": "attention", **row} for row in attention_rows] + [{"__source": "activity", **row} for row in rows]
